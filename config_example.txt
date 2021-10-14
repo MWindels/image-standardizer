@@ -1,0 +1,37 @@
+; This file allows users to supply arguments to the process and validate scripts.
+; To get the scripts to recognize this file, name it "config.txt".
+; 
+; The syntax for specifying an argument is:
+; 	<parameter>=<argument>
+; 
+; There are several parameters which must always be defined:
+; 	python		: The python command/executable to use in creating a python virtual environment.
+; 	exiftool	: The exiftool executable to use in reading/writing image metadata.
+; 	env_dir		: The directory in which to store the python virtual environment.
+; 	in_dir		: The directory from which raw images will be read.
+; 	out_dir		: The directory to which processed images will be written.
+; 
+; Furthermore, there are additional parameters which may optionally be defined:
+; 	equalize_list	: A list (separated by spaces or tabs) of images (relative to in_dir) to process by histogram equalization.
+; 	match_map:<ref>	: A list (separated by spaces or tabs) of images (relative to in_dir) to process by histogram matching with <ref> as reference.
+; 
+; When specifying match_map:<ref> parameters, <ref> is not specified relative to in_dir, and may be either an image or a histogram.
+; Subdirectories of in_dir and out_dir can be read from and written to by specifying partial paths in equalize_list and match_map:<ref>.
+; Note that equalize_list and match_map:<ref> accept glob's ?, *, and [] wildcards (for details see https://man7.org/linux/man-pages/man7/glob.7.html).
+; Unlike glob, however, the \ symbol is interpreted as a directory separator and cannot be used to escape wildcard characters.
+; Also, unlike glob, the ! symbol (complement) is not supported.
+; 
+; You can use a previously-defined parameter to define another parameter by typing the parameter name surrounded by exclamation marks.
+; If an argument contains spaces, wrap it in double quotes (as spaces are separators).
+
+; Tools
+python=py
+exiftool=..\exiftool-12.29\exiftool.exe
+
+; Directories
+env_dir=environment
+in_dir=..\inputs
+out_dir=results
+
+; Processing Parameters
+equalize_list=*.TIF
