@@ -1,7 +1,9 @@
-import resolve
+if __package__ is None or len(__package__) == 0:
+	import resolve
+	import parse
+	import image
+
 import numpy
-import parse
-import image
 import sys
 import os
 
@@ -12,7 +14,7 @@ def equalizer(histogram):
 	The transform is (len(histogram) - 1) * CDF(b) for each bin b in the histogram.  CDF(b) is the cumulative distribution function computed at bin b.  This is the integral of the normalized histogram (or the probability distribution function) from 0 to b.
 	'''
 	
-	return numpy.rint((histogram.size - 1) * numpy.cumsum(histogram) / numpy.sum(histogram)).astype(numpy.int_)
+	return numpy.rint((histogram.size - 1) * (numpy.cumsum(histogram) / numpy.sum(histogram))).astype(numpy.int_)
 
 def matcher(source, destination):
 	'''
@@ -23,16 +25,11 @@ def matcher(source, destination):
 	First, the equalization transforms are not onto.  This means that a value which appears in the source's near-uniform distribution may not appear in the destination's near-uniform distribution.  To resolve this, binary search is used to identify where the source value fits relative to the destination values.  Then, the source value is matched to the nearest destination value.
 	
 	Second, the equalization transforms are not one-to-one.  This means that the inverse of the equalization transforms may map one input to many outputs.  To resolve this issue, the binary search continues looking for matches between the values in the near-uniform distributions while minimizing the difference between the values in the source and destination distributions.  We need not necessarily select a value this way, but we do so because keeping the input and output values as close as possible will minimize deformation in the transformed images.
-	
-	PREVIOUSLY:
-	To match histograms, we first obtain the two transforms that will equalize the source and destination histograms respectively.  Then we look for where the ranges of the two transforms overlap for each value in their domains.  The destination transform is then effectively inverted and composed with the source transform.  However, because the equalization transforms are not one to one, we select the output value which is nearest to the input value.  Finally, all inputs that lack outputs are given interpolated outputs.
-	
-	We need not necessarily choose the nearest value, but we do so because it will cause less deformation to our transformed images.
 	'''
 	
 	source_equalizer = equalizer(source)
 	destination_equalizer = equalizer(destination)
-	assert source_equalizer.size == destination_equalizer.size
+	#assert source_equalizer.size == destination_equalizer.size
 	source_destination_matcher = numpy.empty(source_equalizer.size, dtype=numpy.int_)
 	
 	for src_idx in range(source_equalizer.size):

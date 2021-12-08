@@ -1,3 +1,4 @@
+from scripts.python import resolve
 from scripts.python import parse
 from scripts.python import image
 import numpy

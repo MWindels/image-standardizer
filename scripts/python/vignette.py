@@ -1,7 +1,9 @@
+if __package__ is None or len(__package__) == 0:
+	import parse
+	import image
+
 import functools
 import numpy
-import parse
-import image
 import sys
 import os
 
