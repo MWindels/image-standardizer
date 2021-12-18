@@ -1,5 +1,6 @@
 from scripts.python import standardize
 from scripts.python import image
+from scripts.python import histo
 from tkinter import filedialog
 from PIL import Image, ImageTk
 from tkinter import ttk
@@ -109,12 +110,12 @@ class Editor_Canvas:
 		
 		return x - self.internal_padding, (self.canvas.winfo_reqheight() - 1) - y + self.internal_padding
 	
-	def rebuild(self, histogram, approximate=False):
+	def rebuild(self, reference, approximate=False):
 		'''
-		Rebuilds the canvas with a new histogram.
+		Rebuilds the canvas with a new reference histogram.
 		'''
 		
-		self.reference = histogram
+		self.reference = reference
 		
 		try:
 			for bin in self.bins:
@@ -124,9 +125,10 @@ class Editor_Canvas:
 		except AttributeError:
 			pass
 		
-		self.reducer = numpy.floor(numpy.arange(0, len(self.reference), len(self.reference) / (self.canvas.winfo_reqwidth() / self.bin_width))).astype(numpy.int_)
-		self.reduced_reference = numpy.add.reduceat(self.reference, self.reducer)
-		self.bin_max = self.reduced_reference.max(initial=1)
+		self.reduced_reference = histo.resize(self.reference, self.canvas.winfo_reqwidth() / self.bin_width)
+		self.bin_max = self.reduced_reference.max()
+		if self.bin_max == 0:
+			self.bin_max = 1
 		
 		self.bins = []
 		for idx, bin in enumerate(self.reduced_reference):
@@ -230,8 +232,7 @@ class Editor_Canvas:
 			numpy.asarray([self.bin_max * control.y / (self.histogram_scaling * self.canvas.winfo_reqheight()) for control in self.controls])\
 		)
 		
-		reduction_factors = numpy.append(self.reducer[1:], len(self.reference)) - self.reducer
-		return numpy.repeat(numpy.rint(reduced_histogram / reduction_factors).astype(numpy.int_), reduction_factors)
+		return histo.resize(reduced_histogram, len(self.reference))
 
 class Editor_Frame:
 	'''
@@ -355,7 +356,7 @@ class Editor_Frame:
 		
 		if len(file) > 0:
 			self.reference_names[channel] = os.path.splitext(os.path.split(file)[1])[0]
-			self.reference_contents[f'{channel}_Canvas'].rebuild(image.open_histogram(file), approximate=True)
+			self.reference_contents[f'{channel}_Canvas'].rebuild(histo.open(file), approximate=True)
 	
 	def save_reference(self, channel):
 		'''
@@ -365,7 +366,7 @@ class Editor_Frame:
 		file = filedialog.asksaveasfilename(parent=self.frame, title=f'Save {channel} Reference', filetypes=[('Histogram', '*.npy')], defaultextension='.npy', initialfile=f'{self.reference_names[channel]}.npy' if channel in self.reference_names else '')
 		
 		if len(file) > 0:
-			numpy.save(file, self.reference_contents[f'{channel}_Canvas'].histogram(), allow_pickle=False)
+			histo.save(self.reference_contents[f'{channel}_Canvas'].histogram(), file)
 
 
 if __name__ == '__main__':

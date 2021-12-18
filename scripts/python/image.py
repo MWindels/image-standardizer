@@ -38,23 +38,6 @@ def open(img_path):
 	with Image.open(img_path) as img:
 		return numpy.asarray(img)
 
-def open_histogram(file_path):
-	'''
-	Opens the file at file_path and returns its contents if it's a histogram.  Otherwise, assumes it contains an image and returns its histogram.
-	'''
-	
-	try:
-		contents = numpy.load(file_path)
-	except (IOError, ValueError):
-		return histogram(open(file_path))
-	else:
-		if type(contents) is numpy.ndarray and len(contents.shape) == 1:
-			return contents
-		elif type(contents) is not numpy.ndarray:
-			contents.close()
-		
-		raise ValueError(f'\"{file_path}\" contains numpy data, but it is not a histogram.')
-
 def histogram(pixels):
 	'''
 	Computes the histogram of pixels.  The number of bins is 2 to the power of the bit depth of pixels.
@@ -62,6 +45,20 @@ def histogram(pixels):
 	
 	depth = 8 * pixels.itemsize
 	return numpy.histogram(pixels, bins=2 ** depth, range=(0, 2 ** depth))[0]
+
+def normalize(pixels):
+	'''
+	Normalizes the values in an array of pixels, putting them in the range [0, 1].
+	'''
+	
+	return pixels / (2 ** (8 * pixels.itemsize) - 1)
+
+def resize(pixels, dimensions):
+	'''
+	Scales an array of pixels to the size defined by dimensions.
+	'''
+	
+	return numpy.asarray(Image.fromarray(pixels).resize(dimensions))
 
 def save(pixels, save_path):
 	'''

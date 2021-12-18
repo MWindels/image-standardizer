@@ -1,5 +1,7 @@
 if __package__ is None or len(__package__) == 0:
 	import parse
+else:
+	from . import parse
 
 import glob
 import sys

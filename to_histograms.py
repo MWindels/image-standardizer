@@ -1,6 +1,7 @@
 from scripts.python import resolve
 from scripts.python import parse
 from scripts.python import image
+from scripts.python import histo
 import numpy
 import sys
 import os
@@ -15,8 +16,7 @@ def to_histogram(in_path, out_path, mask_path=None):
 	if mask_path is not None:
 		pixels = numpy.ma.array(pixels, mask=image.open(mask_path) == 0).compressed()
 	
-	os.makedirs(os.path.dirname(out_path), exist_ok=True)
-	numpy.save(out_path, image.histogram(pixels), allow_pickle=False)
+	histo.save(image.histogram(pixels), out_path)
 
 
 if __name__ == '__main__':

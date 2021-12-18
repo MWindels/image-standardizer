@@ -2,6 +2,12 @@ if __package__ is None or len(__package__) == 0:
 	import resolve
 	import parse
 	import image
+	import histo
+else:
+	from . import resolve
+	from . import parse
+	from . import image
+	from . import histo
 
 import numpy
 import sys
@@ -14,7 +20,7 @@ def equalizer(histogram):
 	The transform is (len(histogram) - 1) * CDF(b) for each bin b in the histogram.  CDF(b) is the cumulative distribution function computed at bin b.  This is the integral of the normalized histogram (or the probability distribution function) from 0 to b.
 	'''
 	
-	return numpy.rint((histogram.size - 1) * (numpy.cumsum(histogram) / numpy.sum(histogram))).astype(numpy.int_)
+	return numpy.rint((histogram.size - 1) * histo.cdf(histogram)).astype(numpy.int_)
 
 def matcher(source, destination):
 	'''
@@ -27,10 +33,11 @@ def matcher(source, destination):
 	Second, the equalization transforms are not one-to-one.  This means that the inverse of the equalization transforms may map one input to many outputs.  To resolve this issue, the binary search continues looking for matches between the values in the near-uniform distributions while minimizing the difference between the values in the source and destination distributions.  We need not necessarily select a value this way, but we do so because keeping the input and output values as close as possible will minimize deformation in the transformed images.
 	'''
 	
-	source_equalizer = equalizer(source)
-	destination_equalizer = equalizer(destination)
-	#assert source_equalizer.size == destination_equalizer.size
+	#We use the CDF of each histogram rather than their equalization transforms to handle sources and destinations whose sizes are not equal.
+	source_equalizer = histo.cdf(source)
+	destination_equalizer = histo.cdf(destination)
 	source_destination_matcher = numpy.empty(source_equalizer.size, dtype=numpy.int_)
+	size_ratio = source_equalizer.size / destination_equalizer.size
 	
 	for src_idx in range(source_equalizer.size):
 		low_dest_idx, high_dest_idx = 0, destination_equalizer.size
@@ -44,9 +51,9 @@ def matcher(source, destination):
 				low_dest_idx = mean_dest_idx + 1
 			else:
 				nearest_match_idx = mean_dest_idx
-				if src_idx < mean_dest_idx:
+				if src_idx / size_ratio < mean_dest_idx:
 					high_dest_idx = mean_dest_idx
-				elif src_idx > mean_dest_idx:
+				elif src_idx / size_ratio > mean_dest_idx:
 					low_dest_idx = mean_dest_idx + 1
 				else:
 					break
@@ -66,7 +73,7 @@ def matcher(source, destination):
 			candidate_value_distances = numpy.absolute(destination_equalizer[candidate_idxes] - source_equalizer[src_idx])
 			candidate_idxes = candidate_idxes[candidate_value_distances == numpy.min(candidate_value_distances)]
 			
-			source_destination_matcher[src_idx] = candidate_idxes[numpy.argmin(numpy.absolute(candidate_idxes - src_idx))]
+			source_destination_matcher[src_idx] = candidate_idxes[numpy.argmin(numpy.absolute(candidate_idxes - src_idx / size_ratio))]
 	
 	return source_destination_matcher
 
@@ -79,7 +86,7 @@ def transform(in_path, out_path, transformer):
 	histogram = image.histogram(pixels)
 	
 	#Note: PIL needs the dtype of pixels to be unchanged.
-	image.save(transformer(histogram).astype(pixels.dtype)[pixels], out_path)
+	image.save(transformer(histogram).astype(pixels.dtype)[pixels], out_path) #Output type should really be the type of the destination!
 
 
 if __name__ == '__main__':
@@ -99,7 +106,7 @@ if __name__ == '__main__':
 		transformer = lambda hist: equalizer(hist)
 		
 		if 'reference' in options:
-			ref_histogram = image.open_histogram(options['reference'][0])
+			ref_histogram = histo.open(options['reference'][0])
 			transformer = lambda hist: matcher(hist, ref_histogram)
 		
 		for file in resolve.resolve(requirements['input_directory'], *requirements['files']):

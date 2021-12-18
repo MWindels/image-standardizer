@@ -1,6 +1,9 @@
 if __package__ is None or len(__package__) == 0:
 	import parse
 	import image
+else:
+	from . import parse
+	from . import image
 
 import functools
 import numpy
